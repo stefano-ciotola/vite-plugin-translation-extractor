@@ -1,0 +1,18 @@
+{
+  "name": "vite-plugin-translation-extractor",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@babel/core": "^7.25.2",
+    "@babel/parser": "^7.25.6",
+    "@babel/traverse": "^7.25.6",
+    "make-plural": "^7.4.0"
+  }
+}
