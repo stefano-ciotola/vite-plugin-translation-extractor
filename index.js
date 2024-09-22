@@ -2,14 +2,18 @@ const fs = require("fs");
 const path = require("path");
 const babelParser = require("@babel/parser");
 const traverse = require("@babel/traverse").default;
-const { PluralCategories, getPluralRules } = require("make-plural/pluralCategories");
+const PluralCategories = require("make-plural/pluralCategories");
 
 function translationExtractor(options = {}) {
 	const { srcPath = "src", translationsPath = "public/translations", languages = ["en", "it"], functionName = "t", verbose = false } = options;
 
-	const pluralRules = {};
+	const pluralCategories = {};
 	languages.forEach((lang) => {
-		pluralRules[lang] = getPluralRules(lang);
+		if (PluralCategories[lang]) {
+			pluralCategories[lang] = PluralCategories[lang].cardinal;
+		} else {
+			pluralCategories[lang] = ["other"]; // Usa 'other' se la lingua non è supportata
+		}
 	});
 
 	return {
@@ -27,7 +31,7 @@ function translationExtractor(options = {}) {
 				mergeKeys(allKeys, keys);
 			});
 
-			updateTranslations(allKeys, translationsPath, languages, pluralRules, verbose);
+			updateTranslations(allKeys, translationsPath, languages, pluralCategories, verbose);
 		},
 	};
 
@@ -122,7 +126,7 @@ function translationExtractor(options = {}) {
 	}
 
 	// Funzione per aggiornare i file di traduzione
-	function updateTranslations(keys, translationsPath, languages, pluralRules, verbose) {
+	function updateTranslations(keys, translationsPath, languages, pluralCategories, verbose) {
 		const absTranslationsPath = path.resolve(process.cwd(), translationsPath);
 
 		languages.forEach((lang) => {
@@ -139,7 +143,7 @@ function translationExtractor(options = {}) {
 			keys.forEach((value, key) => {
 				if (value.plurals) {
 					// Genera le chiavi per le forme plurali
-					const pluralForms = pluralRules[lang];
+					const pluralForms = pluralCategories[lang];
 					pluralForms.forEach((form) => {
 						const pluralKey = `${key}_${form}`;
 						if (!translations.hasOwnProperty(pluralKey)) {
