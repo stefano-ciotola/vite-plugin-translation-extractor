@@ -1,18 +1,33 @@
 {
-  "name": "vite-plugin-translation-extractor",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "dependencies": {
-    "@babel/core": "^7.25.2",
-    "@babel/parser": "^7.25.6",
-    "@babel/traverse": "^7.25.6",
-    "make-plural": "^7.4.0"
-  }
+	"name": "vite-plugin-translation-extractor",
+	"version": "1.0.0",
+	"description": "Plugin per Vite.js che estrae automaticamente le chiavi di traduzione dal codice sorgente, gestendo plurali e parametri.",
+	"main": "index.js",
+	"keywords": [
+		"vite",
+		"plugin",
+		"translation",
+		"extract",
+		"plurals",
+		"params"
+	],
+	"author": "Stefano Ciotola <me@stefano.design>",
+	"license": "MIT",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/stefano-ciotola/vite-plugin-translation-extractor.git"
+	},
+	"bugs": {
+		"url": "https://github.com/stefano-ciotola/vite-plugin-translation-extractor/issues"
+	},
+	"homepage": "https://github.com/stefano-ciotola/vite-plugin-translation-extractor#readme",
+	"dependencies": {
+		"@babel/core": "^7.21.0",
+		"@babel/parser": "^7.21.0",
+		"@babel/traverse": "^7.21.0",
+		"make-plural": "^7.0.0"
+	},
+	"engines": {
+		"node": ">=12"
+	}
 }
