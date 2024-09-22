@@ -1,6 +1,6 @@
 {
 	"name": "vite-plugin-translation-extractor",
-	"version": "1.0.1",
+	"version": "1.0.2",
 	"description": "Plugin per Vite.js che estrae automaticamente le chiavi di traduzione dal codice sorgente, gestendo plurali e parametri.",
 	"main": "index.js",
 	"keywords": [
