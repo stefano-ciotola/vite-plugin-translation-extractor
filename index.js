@@ -18,8 +18,10 @@ function translationExtractor(options = {}) {
 
 	return {
 		name: "vite-plugin-translation-extractor",
-		handleHotUpdate({ file, server }) {
+		handleHotUpdate({ file }) {
+			console.log(`handleHotUpdate chiamato per il file: ${file}`);
 			if (isJavaScriptFile(file) && file.startsWith(path.resolve(process.cwd(), srcPath))) {
+				console.log(`Processo il file: ${file}`);
 				if (verbose) {
 					console.log(`File modificato: ${file}`);
 				}
@@ -74,7 +76,7 @@ function translationExtractor(options = {}) {
 			plugins: ["jsx", "typescript"],
 		});
 
-		const keys = new Map(); // Map<chiaveBase, { plurals: boolean, params: Set<string> }>
+		const keys = new Map(); // Map<context, Map<key, { plurals: boolean, params: Set<string> }>>
 
 		traverse(ast, {
 			CallExpression({ node }) {
@@ -85,8 +87,9 @@ function translationExtractor(options = {}) {
 					let key = "";
 					let hasPlural = false;
 					const params = new Set();
+					let context = "default";
 
-					// Estrae la chiave
+					// Estrai la chiave
 					if (keyArg.type === "StringLiteral") {
 						key = keyArg.value;
 					} else if (keyArg.type === "TemplateLiteral") {
@@ -95,25 +98,34 @@ function translationExtractor(options = {}) {
 						return;
 					}
 
-					// Estrae i parametri
+					// Estrai i parametri e il contesto
 					if (optionsArg && optionsArg.type === "ObjectExpression") {
 						optionsArg.properties.forEach((prop) => {
-							if (prop.key.name === "count") {
+							const propName = prop.key.name || prop.key.value; // Gestisce anche chiavi computate
+							if (propName === "count") {
 								hasPlural = true;
 								params.add("count");
-							} else if (prop.key.name !== "context") {
-								params.add(prop.key.name);
+							} else if (propName === "context") {
+								if (prop.value.type === "StringLiteral") {
+									context = prop.value.value;
+								}
+							} else {
+								params.add(propName);
 							}
 						});
 					}
 
-					if (!keys.has(key)) {
-						keys.set(key, { plurals: hasPlural, params });
+					if (!keys.has(context)) {
+						keys.set(context, new Map());
+					}
+					const contextKeys = keys.get(context);
+					if (!contextKeys.has(key)) {
+						contextKeys.set(key, { plurals: hasPlural, params });
 					} else {
-						const existing = keys.get(key);
+						const existing = contextKeys.get(key);
 						existing.plurals = existing.plurals || hasPlural;
 						existing.params = new Set([...existing.params, ...params]);
-						keys.set(key, existing);
+						contextKeys.set(key, existing);
 					}
 				}
 			},
@@ -140,52 +152,63 @@ function translationExtractor(options = {}) {
 	function updateTranslations(keys, translationsPath, languages, pluralCategories, verbose) {
 		const absTranslationsPath = path.resolve(process.cwd(), translationsPath);
 
-		languages.forEach((lang) => {
-			const translationFile = path.join(absTranslationsPath, `${lang}.json`);
-			let translations = {};
+		keys.forEach((contextKeys, context) => {
+			languages.forEach((lang) => {
+				let translationDir = absTranslationsPath;
+				if (context !== "default") {
+					translationDir = path.join(absTranslationsPath, context);
+				}
 
-			// Se il file esiste, leggilo
-			if (fs.existsSync(translationFile)) {
-				translations = JSON.parse(fs.readFileSync(translationFile, "utf-8"));
-			}
+				if (!fs.existsSync(translationDir)) {
+					fs.mkdirSync(translationDir, { recursive: true });
+				}
 
-			let updated = false;
+				const translationFile = path.join(translationDir, `${lang}.json`);
+				let translations = {};
 
-			keys.forEach((value, key) => {
-				if (value.plurals) {
-					// Genera le chiavi per le forme plurali
-					const pluralForms = pluralCategories[lang];
-					pluralForms.forEach((form) => {
-						const pluralKey = `${key}_${form}`;
-						if (!translations.hasOwnProperty(pluralKey)) {
-							translations[pluralKey] = ""; // Aggiungi la chiave con valore vuoto
+				// Se il file esiste, leggilo
+				if (fs.existsSync(translationFile)) {
+					translations = JSON.parse(fs.readFileSync(translationFile, "utf-8"));
+				}
+
+				let updated = false;
+
+				contextKeys.forEach((value, key) => {
+					if (value.plurals) {
+						// Genera le chiavi per le forme plurali
+						const pluralForms = pluralCategories[lang];
+						pluralForms.forEach((form) => {
+							const pluralKey = `${key}_${form}`;
+							if (!translations.hasOwnProperty(pluralKey)) {
+								translations[pluralKey] = ""; // Aggiungi la chiave con valore vuoto
+								updated = true;
+							}
+						});
+					} else {
+						if (!translations.hasOwnProperty(key)) {
+							translations[key] = ""; // Aggiungi la chiave con valore vuoto
 							updated = true;
 						}
-					});
-				} else {
-					if (!translations.hasOwnProperty(key)) {
-						translations[key] = ""; // Aggiungi la chiave con valore vuoto
-						updated = true;
 					}
+				});
+
+				if (updated) {
+					// Ordina le chiavi alfabeticamente
+					const sortedTranslations = {};
+					Object.keys(translations)
+						.sort()
+						.forEach((key) => {
+							sortedTranslations[key] = translations[key];
+						});
+
+					fs.writeFileSync(translationFile, JSON.stringify(sortedTranslations, null, 2), "utf-8");
+					if (verbose) {
+						console.log(`Aggiornato ${translationFile}`);
+					}
+				} else if (verbose) {
+					console.log(`Nessun aggiornamento necessario per ${translationFile}`);
 				}
 			});
-
-			if (updated) {
-				// Ordina le chiavi alfabeticamente
-				const sortedTranslations = {};
-				Object.keys(translations)
-					.sort()
-					.forEach((key) => {
-						sortedTranslations[key] = translations[key];
-					});
-
-				fs.writeFileSync(translationFile, JSON.stringify(sortedTranslations, null, 2), "utf-8");
-				if (verbose) {
-					console.log(`Aggiornato ${translationFile}`);
-				}
-			} else if (verbose) {
-				console.log(`Nessun aggiornamento necessario per ${translationFile}`);
-			}
 		});
 	}
 }
