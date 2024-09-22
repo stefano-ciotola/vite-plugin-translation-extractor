@@ -18,7 +18,18 @@ function translationExtractor(options = {}) {
 
 	return {
 		name: "vite-plugin-translation-extractor",
-		apply: "build",
+		handleHotUpdate({ file, server }) {
+			if (isJavaScriptFile(file) && file.startsWith(path.resolve(process.cwd(), srcPath))) {
+				if (verbose) {
+					console.log(`File modificato: ${file}`);
+				}
+
+				const keys = extractKeysFromFile(file);
+				const allKeys = new Map();
+				mergeKeys(allKeys, keys);
+				updateTranslations(allKeys, translationsPath, languages, pluralCategories, verbose);
+			}
+		},
 		buildStart() {
 			if (verbose) {
 				console.log("Inizio estrazione delle traduzioni...");
