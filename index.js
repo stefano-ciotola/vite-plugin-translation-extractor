@@ -124,7 +124,7 @@ function translationExtractor(options = {}) {
 					} else {
 						const existing = contextKeys.get(key);
 						existing.plurals = existing.plurals || hasPlural;
-						existing.params = new Set([...existing.params, ...params]);
+						existing.params = new Set([...(existing.params instanceof Set ? existing.params : []), ...value.params]);
 						contextKeys.set(key, existing);
 					}
 				}
