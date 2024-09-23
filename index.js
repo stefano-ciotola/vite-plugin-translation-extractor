@@ -142,7 +142,7 @@ function translationExtractor(options = {}) {
 			} else {
 				const existing = allKeys.get(key);
 				existing.plurals = existing.plurals || value.plurals;
-				existing.params = new Set([...existing.params, ...value.params]);
+				existing.params = new Set([...existing?.params, ...value?.params]);
 				allKeys.set(key, existing);
 			}
 		});
